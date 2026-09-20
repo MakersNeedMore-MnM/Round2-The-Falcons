@@ -1,0 +1,31 @@
+{
+  "name": "cascadia",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cascadia critical-infrastructure cyber-resilience platform",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build && node scripts/start-local.mjs",
+    "dev:token": "npm run dev:token -w @cascadia/api",
+    "identity:bootstrap": "npm run identity:bootstrap -w @cascadia/api --",
+    "backup:postgres": "node scripts/backup-postgres.mjs",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run build -w @cascadia/contracts && npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:postgres": "npm run test:postgres -w @cascadia/api",
+    "verify:release": "node scripts/verify-release.mjs",
+    "verify": "npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "hardhat": "^3.16.0"
+  }
+}

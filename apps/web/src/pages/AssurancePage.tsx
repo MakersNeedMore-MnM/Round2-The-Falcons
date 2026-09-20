@@ -1,0 +1,20 @@
+import { useQuery } from "@tanstack/react-query";
+import { CheckCircle2, Download, FileCheck2, ShieldCheck, Target } from "lucide-react";
+import { api } from "../api";
+import { ErrorState, Loading, PageHeading } from "../components/Ui";
+
+export function AssurancePage() {
+  const assurance = useQuery({ queryKey: ["governance-assurance"], queryFn: api.governanceAssurance });
+  const posture = useQuery({ queryKey: ["posture"], queryFn: api.posture });
+  const report = useQuery({ queryKey: ["executive-report"], queryFn: api.executiveReport, enabled: false });
+  if (assurance.isLoading || posture.isLoading) return <Loading />;
+  if (assurance.error || posture.error) return <ErrorState error={assurance.error ?? posture.error} />;
+  const governance = assurance.data!; const summary = posture.data!;
+  const downloadReport = async () => { const result = await report.refetch(); if (!result.data) return; const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `cascadia-executive-assurance-${result.data.generatedAt.slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); };
+  return <><PageHeading eyebrow="Phases 11–13 / assurance" title="Governance & posture" copy="Evidence-backed data controls and a transparent security posture based only on records stored in Cascadia." action={<button className="button button--quiet" onClick={() => void downloadReport()} disabled={report.isFetching}><Download size={14} /> {report.isFetching ? "Preparing report" : "Export executive report"}</button>} />
+    <section className="assurance-hero"><div><span>Current posture</span><strong>{summary.score}</strong><b>Grade {summary.grade}</b></div><dl><div><dt>Open vulnerabilities</dt><dd>{summary.exposure.openVulnerabilities}</dd></div><div><dt>Active exploitation</dt><dd>{summary.exposure.activelyExploitedVulnerabilities}</dd></div><div><dt>High findings</dt><dd>{summary.exposure.unresolvedHighFindings}</dd></div><div><dt>Open high incidents</dt><dd>{summary.exposure.openHighIncidents}</dd></div></dl></section>
+    <div className="assurance-grid"><section className="data-panel"><header><div><span className="panel-label">Phase 11</span><h2>Data assurance</h2></div><FileCheck2 size={18} /></header><div className="control-list"><p><ShieldCheck size={15} /> Tenant-isolated evidence and untrusted source handling are enforced.</p><p><CheckCircle2 size={15} /> Audit evidence is append-only: <b>{governance.evidence.auditEvents}</b> stored events.</p><p><CheckCircle2 size={15} /> Human approval is required; autonomous execution remains disabled.</p></div><dl className="retention-list"><div><dt>Raw events</dt><dd>{governance.retention.rawEventsDays} days</dd></div><div><dt>Normalized events</dt><dd>{governance.retention.normalizedEventsDays} days</dd></div><div><dt>Audit evidence</dt><dd>{governance.retention.auditEvidenceDays} days</dd></div></dl></section>
+      <section className="data-panel"><header><div><span className="panel-label">Phase 12</span><h2>Priority queue</h2></div><Target size={18} /></header>{summary.priorities.length ? <div className="priority-list">{summary.priorities.map((item) => <article key={item.id}><span className={`severity severity--${item.severity}`}>{item.severity}</span><div><b>{item.title}</b><p>{item.rationale}</p></div></article>)}</div> : <p className="empty-copy">No urgent priorities are derived from the stored records.</p>}</section></div>
+    <section className="data-panel"><header><div><span className="panel-label">Coverage</span><h2>Evidence currently represented</h2></div></header><div className="coverage-list"><span><b>{summary.coverage.assets}</b> assets</span><span><b>{summary.coverage.criticalAssets}</b> critical assets</span><span><b>{summary.coverage.assetsWithOpenVulnerabilities}</b> vulnerable assets</span><span><b>{summary.coverage.activeIntegrations}</b> active integrations</span><span><b>{summary.coverage.criticalServices}</b> critical services</span></div><p className="muted">{summary.limitations[0]}</p></section>
+  </>;
+}

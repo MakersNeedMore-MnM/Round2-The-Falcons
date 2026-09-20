@@ -1,0 +1,16 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileUp, ShieldCheck, Upload } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
+import { api } from "../api";
+import { ErrorState, PageHeading } from "../components/Ui";
+
+export function ImportPage() {
+  const client = useQueryClient(); const [content, setContent] = useState(""); const [source, setSource] = useState<"manual_csv" | "cmdb_csv" | "cyclonedx_json">("cmdb_csv");
+  const imported = useMutation({ mutationFn: api.importAssets, onSuccess: () => client.invalidateQueries({ queryKey: ["assets"] }) });
+  const readFile = async (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (file) setContent(await file.text()); };
+  const submit = (event: FormEvent) => { event.preventDefault(); imported.mutate({ source, content, defaultClassification: "confidential", defaultCriticality: "medium" }); };
+  return <><PageHeading eyebrow="Phase 19 / validated inventory import" title="Import real inventory" copy="Bring in CMDB CSV, manual CSV, or CycloneDX JSON. Every record is validated before it becomes part of the operational topology." />
+    <section className="import-layout"><form className="data-panel import-form" onSubmit={submit}><header><div><span className="panel-label">Source data</span><h2>Inventory file</h2></div><FileUp size={18} /></header><div className="import-body"><label>Import format<select value={source} onChange={(event) => setSource(event.target.value as typeof source)}><option value="cmdb_csv">CMDB CSV</option><option value="manual_csv">Manual CSV</option><option value="cyclonedx_json">CycloneDX JSON</option></select></label><label className="file-picker"><Upload size={15} /> Choose a local file<input type="file" accept={source === "cyclonedx_json" ? ".json,application/json" : ".csv,text/csv"} onChange={(event) => void readFile(event)} /></label><label>Preview / paste content<textarea value={content} onChange={(event) => setContent(event.target.value)} rows={13} placeholder={source === "cyclonedx_json" ? '{ "components": [] }' : "external_id,name,asset_type,criticality,classification\ncmdb-001,Core Database,database,critical,restricted"} required /></label><button className="button button--primary" disabled={!content || imported.isPending}>{imported.isPending ? "Validating import" : "Validate and import"}</button>{imported.error && <ErrorState error={imported.error} />}</div></form>
+      <section className="data-panel import-guide"><header><div><span className="panel-label">Safety boundary</span><h2>Import behavior</h2></div><ShieldCheck size={18} /></header><div><p>Only explicitly selected local content is sent to Cascadia.</p><p>Invalid rows are rejected with reasons; valid rows are stored or updated by external ID.</p><p>No assets, dependencies, telemetry, or incidents are fabricated during import.</p></div>{imported.data && <div className="import-result"><span>Created <b>{imported.data.created}</b></span><span>Updated <b>{imported.data.updated}</b></span><span>Rejected <b>{imported.data.rejected.length}</b></span>{imported.data.rejected.length > 0 && <ul>{imported.data.rejected.map((item) => <li key={`${item.row}-${item.reason}`}>Row {item.row}: {item.reason}</li>)}</ul>}</div>}</section></section>
+  </>;
+}

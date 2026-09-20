@@ -1,0 +1,11 @@
+.git
+.agents
+.codex
+.tools
+node_modules
+**/dist
+**/*.log
+.env
+.env.*
+!.env.example
+backups

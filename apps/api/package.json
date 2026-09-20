@@ -1,0 +1,36 @@
+{
+  "name": "@cascadia/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/**/*.test.js",
+    "test:postgres": "npm run build && node --env-file=../../.env dist/postgres-test-runner.js",
+    "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/server.ts",
+    "dev:token": "npm run build && node --env-file=../../.env dist/dev-token.js",
+    "identity:bootstrap": "npm run build && node --env-file=../../.env dist/bootstrap-identity.js",
+    "migrate": "npm run build && node dist/migrate.js"
+  },
+  "dependencies": {
+    "@cascadia/contracts": "file:../../packages/contracts",
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/jwt": "^10.0.0",
+    "@fastify/rate-limit": "^11.2.0",
+    "@fastify/static": "^10.1.3",
+    "@mstblockchain/mst-sdk": "^1.0.0",
+    "ethers": "^6.17.0",
+    "fastify": "^5.6.1",
+    "openid-client": "^6.8.7",
+    "pg": "^8.16.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/pg": "^8.15.6",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

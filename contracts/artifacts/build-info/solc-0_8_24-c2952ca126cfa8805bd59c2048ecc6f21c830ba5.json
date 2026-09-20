@@ -1,0 +1,42 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_24-c2952ca126cfa8805bd59c2048ecc6f21c830ba5",
+  "solcVersion": "0.8.24",
+  "solcLongVersion": "0.8.24+commit.e11b9ed9",
+  "compilerType": "solc",
+  "userSourceNameMap": {
+    "CascadiaProofRegistry.sol": "project/CascadiaProofRegistry.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/CascadiaProofRegistry.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.24;\r\n\r\ncontract CascadiaProofRegistry {\r\n    struct AuditBatch {\r\n        bytes32 merkleRoot;\r\n        uint256 batchStartTime;\r\n        uint256 batchEndTime;\r\n        uint256 eventCount;\r\n        uint256 anchoredAt;\r\n    }\r\n\r\n    struct DecisionRecord {\r\n        bytes32 evidenceHash;\r\n        address approverAddress;\r\n        uint256 timestamp;\r\n    }\r\n\r\n    uint256 public auditBatchCount;\r\n    mapping(uint256 => AuditBatch) private auditBatches;\r\n    mapping(bytes32 => DecisionRecord) private decisionRecords;\r\n\r\n    event AuditBatchAnchored(\r\n        uint256 indexed batchId,\r\n        bytes32 merkleRoot,\r\n        uint256 batchStartTime,\r\n        uint256 batchEndTime,\r\n        uint256 eventCount\r\n    );\r\n\r\n    event DecisionRecorded(\r\n        string decisionId,\r\n        bytes32 evidenceHash,\r\n        string decisionType,\r\n        address approverAddress,\r\n        uint256 timestamp,\r\n        bytes approverSignature\r\n    );\r\n\r\n    function anchorAuditBatch(\r\n        bytes32 merkleRoot,\r\n        uint256 batchStartTime,\r\n        uint256 batchEndTime,\r\n        uint256 eventCount\r\n    ) external {\r\n        require(eventCount > 0, \"empty audit batch\");\r\n        require(batchEndTime >= batchStartTime, \"invalid batch window\");\r\n        uint256 batchId = auditBatchCount;\r\n        auditBatchCount += 1;\r\n        auditBatches[batchId] = AuditBatch(\r\n            merkleRoot,\r\n            batchStartTime,\r\n            batchEndTime,\r\n            eventCount,\r\n            block.timestamp\r\n        );\r\n        emit AuditBatchAnchored(batchId, merkleRoot, batchStartTime, batchEndTime, eventCount);\r\n    }\r\n\r\n    function getAuditBatch(uint256 batchId)\r\n        external\r\n        view\r\n        returns (bytes32 merkleRoot, uint256 batchStartTime, uint256 batchEndTime, uint256 eventCount, uint256 anchoredAt)\r\n    {\r\n        AuditBatch memory batch = auditBatches[batchId];\r\n        return (batch.merkleRoot, batch.batchStartTime, batch.batchEndTime, batch.eventCount, batch.anchoredAt);\r\n    }\r\n\r\n    function recordDecision(\r\n        string calldata decisionId,\r\n        bytes32 evidenceHash,\r\n        string calldata decisionType,\r\n        address approverAddress,\r\n        uint256 timestamp,\r\n        bytes calldata approverSignature\r\n    ) external {\r\n        require(approverAddress != address(0), \"invalid approver\");\r\n        require(timestamp > 0, \"invalid timestamp\");\r\n        require(decisionRecords[keccak256(bytes(decisionId))].timestamp == 0, \"decision already recorded\");\r\n        require(_recover(evidenceHash, approverSignature) == approverAddress, \"invalid approver signature\");\r\n        decisionRecords[keccak256(bytes(decisionId))] = DecisionRecord(evidenceHash, approverAddress, timestamp);\r\n        emit DecisionRecorded(decisionId, evidenceHash, decisionType, approverAddress, timestamp, approverSignature);\r\n    }\r\n\r\n    function getDecisionRecord(string calldata decisionId)\r\n        external\r\n        view\r\n        returns (bytes32 evidenceHash, address approverAddress, uint256 timestamp)\r\n    {\r\n        DecisionRecord memory record = decisionRecords[keccak256(bytes(decisionId))];\r\n        return (record.evidenceHash, record.approverAddress, record.timestamp);\r\n    }\r\n\r\n    function _recover(bytes32 evidenceHash, bytes calldata signature) private pure returns (address) {\r\n        require(signature.length == 65, \"invalid signature length\");\r\n        bytes32 r;\r\n        bytes32 s;\r\n        uint8 v;\r\n        assembly {\r\n            r := calldataload(signature.offset)\r\n            s := calldataload(add(signature.offset, 32))\r\n            v := byte(0, calldataload(add(signature.offset, 64)))\r\n        }\r\n        if (v < 27) v += 27;\r\n        require(v == 27 || v == 28, \"invalid signature recovery id\");\r\n        bytes32 digest = keccak256(abi.encodePacked(\"\\x19Ethereum Signed Message:\\n32\", evidenceHash));\r\n        return ecrecover(digest, v, r, s);\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cascadia
+      POSTGRES_USER: cascadia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cascadia -d cascadia"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - cascadia-production-postgres:/var/lib/postgresql/data
+    networks: [data]
+
+  migrate:
+    build: .
+    env_file: .env.production
+    working_dir: /app/apps/api
+    command: ["node", "dist/migrate.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [data]
+    restart: "no"
+
+  cascadia:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:8080:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [data]
+
+networks:
+  data:
+    internal: true
+
+volumes:
+  cascadia-production-postgres:
